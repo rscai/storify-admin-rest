@@ -1,0 +1,22 @@
+spring:
+    data:
+        rest:
+            basePath: /api
+            defaultPageSize: 10
+            maxPageSize: 100
+            returnBodyOnCreate: true
+            returnBodyOnUpdate: true
+    datasource:
+        url: jdbc:h2:~/test.h2;DB_CLOSE_ON_EXIT=FALSE
+        username: sa
+        password: sa
+        driverClass: org.h2.Driver
+    jpa:
+        database: H2
+        show-sql: true
+        hiebernate:
+            ddl-auto: none
+            naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.H2Dialect
