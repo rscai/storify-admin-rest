@@ -61,7 +61,10 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
         .content(mapper.writeValueAsString(customCollection)))
         .andDo(print())
         .andExpect(status().is2xxSuccessful())
-        .andExpect(jsonPath("$.title", is("testCollection1")));
+        .andExpect(jsonPath("$.title", is("testCollection1")))
+      .andExpect(jsonPath("$.bodyHtml", is(bodyHtml)))
+      .andExpect(jsonPath("$.image",is("BASE64://assddfdfdfererere=")))
+
     }
   }
 }

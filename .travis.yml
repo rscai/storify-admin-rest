@@ -13,3 +13,10 @@ before_install:
     - unzip gradle-3.2.1-bin.zip
     - export GRADLE_HOME=$PWD/gradle-3.2.1
     - export PATH=$GRADLE_HOME/bin:$PATH
+    - sudo apt-get install jq
+    - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url)
+script:
+    - gradle clean check JacocoTestReport
+after_success:
+    - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r 
+   build/reports/jacoco/test/jacocoTestReport.xml
