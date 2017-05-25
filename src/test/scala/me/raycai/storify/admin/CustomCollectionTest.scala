@@ -1,19 +1,21 @@
 package me.raycai.storify.admin
 
+import javax.sql.DataSource
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.scalaspring.scalatest.TestContextManagement
 import me.raycai.storify.admin.model.{CustomCollection, MetaField}
 import me.raycai.storify.admin.model.CustomCollection.SortOrder
 import org.hamcrest.CoreMatchers.is
 import org.junit.runner.RunWith
-import org.scalatest.{FeatureSpec, GivenWhenThen}
+import org.scalatest.{BeforeAndAfter, FeatureSpec, GivenWhenThen}
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer
 import org.springframework.http.MediaType
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit4.SpringRunner
 import org.springframework.test.context.web.WebAppConfiguration
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.{get, post, put, delete}
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.{delete, get, post, put}
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers.print
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.{jsonPath, status}
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
@@ -21,16 +23,28 @@ import org.springframework.web.context.WebApplicationContext
 
 import scala.collection.JavaConverters._
 
+
 @RunWith(classOf[SpringRunner])
 @WebAppConfiguration
 @ContextConfiguration(classes = Array(classOf[Application]),
   initializers = Array(classOf[ConfigFileApplicationContextInitializer]))
-class CustomCollectionTest extends FeatureSpec with TestContextManagement with GivenWhenThen {
+class CustomCollectionTest extends FeatureSpec with TestContextManagement with GivenWhenThen with BeforeAndAfter {
   @Autowired var context: WebApplicationContext = null
+  @Autowired var dataSource: DataSource = null
 
   protected def mvc = MockMvcBuilders.webAppContextSetup(context).build
 
   protected def mapper = new ObjectMapper()
+
+  before {
+    info("clean all custom collections")
+    val connection = dataSource.getConnection()
+    val stmt = connection.createStatement()
+    stmt.execute("delete from custom_collection_metafield")
+    stmt.execute("delete from custom_collection")
+    connection.commit();
+    connection.close
+  }
 
 
   feature("CustomCollection management") {
@@ -172,8 +186,168 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON)).andDo(print)
         .andExpect(status.isOk)
         .andExpect(jsonPath("$.published", is(true)))
+    }
+    scenario("unpublish custom collection") {
+      Given("a published custom collection")
+      val id: String = "test000004"
+      val customCollection = new CustomCollection()
+      customCollection.setId(id)
+      customCollection.setTitle("published")
+      val bodyHtml = "<p><strong>test</strong></p>"
+      customCollection.setBodyHtml(bodyHtml);
+      customCollection.setImage("BASE64://assddfdfdfererere=")
+      customCollection.setMetafield(List(
+        new MetaField().setKey("tag1").setValue("tag name 1").setValueType("string").setNamespace("global")
+          .setDescription("nothing"),
+        new MetaField().setKey("tag2").setValue("tag name 2").setValueType("string").setNamespace("collection").
+          setDescription("for test")
+      ).asInstanceOf[List[MetaField]].asJava)
+      customCollection.setSortOrder(SortOrder.MANUAL)
+      customCollection.setPublished(true)
+
+      mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
+        .content(mapper.writeValueAsString(customCollection)))
+        .andDo(print())
+        .andExpect(status().is2xxSuccessful())
+      mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
+        .andDo(print())
+        .andExpect(status().isOk)
+        .andExpect(jsonPath("$.published", is(true)))
+
+      When("unpublish")
+      customCollection.setPublished(false)
+      mvc.perform(put("/api/custom_collections/" + id).contentType(MediaType.APPLICATION_JSON).accept(MediaType
+        .APPLICATION_JSON).content(mapper.writeValueAsString(customCollection)))
+        .andDo(print())
+        .andExpect(status.is2xxSuccessful())
+
+      Then("change published status to true")
+      mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON)).andDo(print)
+        .andExpect(status.isOk)
+        .andExpect(jsonPath("$.published", is(false)))
+    }
+    scenario("remove unused custom collection") {
+      Given("a custom collection")
+      val id: String = "test000005"
+      val customCollection = new CustomCollection()
+      customCollection.setId(id)
+      customCollection.setTitle("published")
+      val bodyHtml = "<p><strong>test</strong></p>"
+      customCollection.setBodyHtml(bodyHtml);
+      customCollection.setImage("BASE64://assddfdfdfererere=")
+      customCollection.setMetafield(List(
+        new MetaField().setKey("tag1").setValue("tag name 1").setValueType("string").setNamespace("global")
+          .setDescription("nothing"),
+        new MetaField().setKey("tag2").setValue("tag name 2").setValueType("string").setNamespace("collection").
+          setDescription("for test")
+      ).asInstanceOf[List[MetaField]].asJava)
+      customCollection.setSortOrder(SortOrder.MANUAL)
+      customCollection.setPublished(true)
+
+      mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
+        .content(mapper.writeValueAsString(customCollection)))
+        .andDo(print())
+        .andExpect(status().is2xxSuccessful())
+      mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
+        .andDo(print())
+        .andExpect(status().isOk)
+
+      When("remove custom collection")
+      mvc.perform(delete("/api/custom_collections/" + id)).andDo(print()).andExpect(status().is2xxSuccessful())
+
+      Then("the custom collection has been removed")
+      mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON)).andDo(print())
+        .andExpect(status().isNotFound)
+    }
+
+    scenario("fetch custom collection by page") {
+      Given("53 custom collections")
+      List.range(1, 54).foreach {
+        index: Int =>
+          val id: String = "fetch_" + index
+          val title: String = "fetch_" + index
+
+          val customCollection = new CustomCollection()
+          customCollection.setId(id)
+          customCollection.setTitle(title)
+          val bodyHtml = "<p><strong>test</strong></p>"
+          customCollection.setBodyHtml(bodyHtml);
+          customCollection.setImage("BASE64://assddfdfdfererere=")
+          customCollection.setMetafield(List(
+            new MetaField().setKey("tag1").setValue("tag name 1").setValueType("string").setNamespace("global")
+              .setDescription("nothing"),
+            new MetaField().setKey("tag2").setValue("tag name 2").setValueType("string").setNamespace("collection").
+              setDescription("for test")
+          ).asInstanceOf[List[MetaField]].asJava)
+          customCollection.setSortOrder(SortOrder.MANUAL)
+          customCollection.setPublished(true)
+
+          mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(customCollection)))
+            .andDo(print())
+            .andExpect(status().is2xxSuccessful())
+          mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
+            .andDo(print())
+            .andExpect(status().isOk)
+
+      }
+
+      When("fetch second page in page size 10")
+
+      Then("get 10 custom collections")
+      mvc.perform(get("/api/custom_collections/").param("page", "2").param("size", "10")
+        .accept(MediaType.APPLICATION_JSON))
+        .andDo(print()).andExpect(status().is2xxSuccessful())
+        .andExpect(jsonPath("$._embedded.custom_collections.length()", is(10)))
 
 
     }
+
+    scenario("filter custom collection by publish status") {
+      Given("2 published and 3 unpublished custom collections")
+      List(true, true, false, false, false).zipWithIndex.foreach {
+        x: (Boolean, Int) =>
+          val id: String = "pub_" + x._2
+          val title: String = "pub_" + x._2
+          val customCollection = new CustomCollection()
+          customCollection.setId(id)
+          customCollection.setTitle(title)
+          val bodyHtml = "<p><strong>test</strong></p>"
+          customCollection.setBodyHtml(bodyHtml);
+          customCollection.setImage("BASE64://assddfdfdfererere=")
+          customCollection.setMetafield(List(
+            new MetaField().setKey("tag1").setValue("tag name 1").setValueType("string").setNamespace("global")
+              .setDescription("nothing"),
+            new MetaField().setKey("tag2").setValue("tag name 2").setValueType("string").setNamespace("collection").
+              setDescription("for test")
+          ).asInstanceOf[List[MetaField]].asJava)
+          customCollection.setSortOrder(SortOrder.MANUAL)
+          customCollection.setPublished(x._1)
+
+          mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(customCollection)))
+            .andDo(print())
+            .andExpect(status().is2xxSuccessful())
+          mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
+            .andDo(print())
+            .andExpect(status().isOk)
+
+      }
+
+      When("filter published custom collections")
+      Then("got 2")
+      mvc.perform(get("/api/custom_collections/search/findByPublished").param("published", "true").accept(MediaType
+        .APPLICATION_JSON))
+        .andDo(print).andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
+        is(2)))
+
+      When("filter unpublished custom collections")
+      Then("got 3")
+      mvc.perform(get("/api/custom_collections/search/findByPublished").param("published", "false").accept(MediaType
+        .APPLICATION_JSON))
+        .andDo(print).andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
+        is(3)))
+    }
+
   }
 }
