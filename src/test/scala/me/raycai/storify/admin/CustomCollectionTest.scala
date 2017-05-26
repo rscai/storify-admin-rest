@@ -10,7 +10,9 @@ import org.hamcrest.CoreMatchers.is
 import org.junit.runner.RunWith
 import org.scalatest.{BeforeAndAfter, FeatureSpec, GivenWhenThen}
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.ConfigFileApplicationContextInitializer
+import org.springframework.boot.test.autoconfigure.properties.PropertyMapping
+import org.springframework.boot.test.context.{ConfigFileApplicationContextInitializer, SpringBootTest, TestConfiguration}
+import org.springframework.context.annotation.PropertySource
 import org.springframework.http.MediaType
 import org.springframework.test.context.ContextConfiguration
 import org.springframework.test.context.junit4.SpringRunner
@@ -28,6 +30,7 @@ import scala.collection.JavaConverters._
 @WebAppConfiguration
 @ContextConfiguration(classes = Array(classOf[Application]),
   initializers = Array(classOf[ConfigFileApplicationContextInitializer]))
+@SpringBootTest(properties = Array("logging.level.org.springframework=INFO", "spring.jpa.show-sql=false"))
 class CustomCollectionTest extends FeatureSpec with TestContextManagement with GivenWhenThen with BeforeAndAfter {
   @Autowired var context: WebApplicationContext = null
   @Autowired var dataSource: DataSource = null
@@ -51,7 +54,6 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
     scenario("create new CustomCollection") {
       Given("REST API of CustomCollection")
       mvc.perform(get("/api/profile/custom_collections").accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
         .andExpect(status().isOk)
 
       When("create new CustomCollection")
@@ -74,7 +76,6 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       Then("got created customCollection")
       mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
         .content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status().is2xxSuccessful())
         .andExpect(jsonPath("$.title", is("testCollection1")))
         .andExpect(jsonPath("$.bodyHtml", is(bodyHtml)))
@@ -83,7 +84,6 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
 
       mvc.perform(get("/api/custom_collections/test000001").accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
         .andExpect(status().isOk)
         .andExpect(jsonPath("$.title", is("testCollection1")))
         .andExpect(jsonPath("$.bodyHtml", is(bodyHtml)))
@@ -114,7 +114,6 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
       mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
         .content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status().is2xxSuccessful())
 
       When("Update title, bodyHtml, image, and metafield")
@@ -131,12 +130,10 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
       mvc.perform(put("/api/custom_collections/" + id).contentType(MediaType.APPLICATION_JSON).accept(MediaType
         .APPLICATION_JSON).content(mapper.writeValueAsString(updateCustomCollection)))
-        .andDo(print())
         .andExpect(status().is2xxSuccessful())
 
       Then("title, bodyHtml, image and metafield has been updated")
       mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
         .andExpect(status().isOk)
         .andExpect(jsonPath("$.title", is("updatedTitle")))
         .andExpect(jsonPath("$.bodyHtml", is("<p>update</p>")))
@@ -168,10 +165,8 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
       mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
         .content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status().is2xxSuccessful())
       mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
         .andExpect(status().isOk)
         .andExpect(jsonPath("$.published", is(false)))
 
@@ -179,7 +174,6 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       customCollection.setPublished(true)
       mvc.perform(put("/api/custom_collections/" + id).contentType(MediaType.APPLICATION_JSON).accept(MediaType
         .APPLICATION_JSON).content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status.is2xxSuccessful())
 
       Then("change published status to true")
@@ -207,10 +201,8 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
       mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
         .content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status().is2xxSuccessful())
       mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
         .andExpect(status().isOk)
         .andExpect(jsonPath("$.published", is(true)))
 
@@ -218,7 +210,6 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       customCollection.setPublished(false)
       mvc.perform(put("/api/custom_collections/" + id).contentType(MediaType.APPLICATION_JSON).accept(MediaType
         .APPLICATION_JSON).content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status.is2xxSuccessful())
 
       Then("change published status to true")
@@ -246,10 +237,8 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
       mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
         .content(mapper.writeValueAsString(customCollection)))
-        .andDo(print())
         .andExpect(status().is2xxSuccessful())
       mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-        .andDo(print())
         .andExpect(status().isOk)
 
       When("remove custom collection")
@@ -284,10 +273,10 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
           mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
             .content(mapper.writeValueAsString(customCollection)))
-            .andDo(print())
+
             .andExpect(status().is2xxSuccessful())
           mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-            .andDo(print())
+
             .andExpect(status().isOk)
 
       }
@@ -297,7 +286,7 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       Then("get 10 custom collections")
       mvc.perform(get("/api/custom_collections/").param("page", "2").param("size", "10")
         .accept(MediaType.APPLICATION_JSON))
-        .andDo(print()).andExpect(status().is2xxSuccessful())
+        .andExpect(status().is2xxSuccessful())
         .andExpect(jsonPath("$._embedded.custom_collections.length()", is(10)))
 
 
@@ -326,10 +315,10 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
           mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
             .content(mapper.writeValueAsString(customCollection)))
-            .andDo(print())
+
             .andExpect(status().is2xxSuccessful())
           mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-            .andDo(print())
+
             .andExpect(status().isOk)
 
       }
@@ -338,14 +327,14 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       Then("got 2")
       mvc.perform(get("/api/custom_collections/search/byPublished").param("published", "true").accept(MediaType
         .APPLICATION_JSON))
-        .andDo(print).andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
+        .andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
         is(2)))
 
       When("filter unpublished custom collections")
       Then("got 3")
       mvc.perform(get("/api/custom_collections/search/byPublished").param("published", "false").accept(MediaType
         .APPLICATION_JSON))
-        .andDo(print).andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
+        .andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
         is(3)))
     }
 
@@ -373,10 +362,8 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
           mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
             .content(mapper.writeValueAsString(customCollection)))
-            .andDo(print())
             .andExpect(status().is2xxSuccessful())
           mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
-            .andDo(print())
             .andExpect(status().isOk)
 
       }
@@ -385,7 +372,7 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
       Then("get 1 matched")
       mvc.perform(get("/api/custom_collections/search/byTitle").param("title", "fetch_2").accept(MediaType
         .APPLICATION_JSON))
-        .andDo(print).andExpect(status.is2xxSuccessful)
+        .andExpect(status.is2xxSuccessful)
         .andExpect(jsonPath("$._embedded.custom_collections.length()", is(1)))
         .andExpect(jsonPath("$._embedded.custom_collections[0].title", is("fetch_2")))
     }
