@@ -336,17 +336,58 @@ class CustomCollectionTest extends FeatureSpec with TestContextManagement with G
 
       When("filter published custom collections")
       Then("got 2")
-      mvc.perform(get("/api/custom_collections/search/findByPublished").param("published", "true").accept(MediaType
+      mvc.perform(get("/api/custom_collections/search/byPublished").param("published", "true").accept(MediaType
         .APPLICATION_JSON))
         .andDo(print).andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
         is(2)))
 
       When("filter unpublished custom collections")
       Then("got 3")
-      mvc.perform(get("/api/custom_collections/search/findByPublished").param("published", "false").accept(MediaType
+      mvc.perform(get("/api/custom_collections/search/byPublished").param("published", "false").accept(MediaType
         .APPLICATION_JSON))
         .andDo(print).andExpect(status.is2xxSuccessful).andExpect(jsonPath("$._embedded.custom_collections.length()",
         is(3)))
+    }
+
+    scenario("fetch custom collections by title") {
+      Given("10 custom collections")
+      List.range(1, 11).foreach {
+        index: Int =>
+          val id: String = "fetch_" + index
+          val title: String = "fetch_" + index
+
+          val customCollection = new CustomCollection()
+          customCollection.setId(id)
+          customCollection.setTitle(title)
+          val bodyHtml = "<p><strong>test</strong></p>"
+          customCollection.setBodyHtml(bodyHtml);
+          customCollection.setImage("BASE64://assddfdfdfererere=")
+          customCollection.setMetafield(List(
+            new MetaField().setKey("tag1").setValue("tag name 1").setValueType("string").setNamespace("global")
+              .setDescription("nothing"),
+            new MetaField().setKey("tag2").setValue("tag name 2").setValueType("string").setNamespace("collection").
+              setDescription("for test")
+          ).asInstanceOf[List[MetaField]].asJava)
+          customCollection.setSortOrder(SortOrder.MANUAL)
+          customCollection.setPublished(true)
+
+          mvc.perform(post("/api/custom_collections").contentType(MediaType.APPLICATION_JSON)
+            .content(mapper.writeValueAsString(customCollection)))
+            .andDo(print())
+            .andExpect(status().is2xxSuccessful())
+          mvc.perform(get("/api/custom_collections/" + id).accept(MediaType.APPLICATION_JSON))
+            .andDo(print())
+            .andExpect(status().isOk)
+
+      }
+
+      When("search custom collections by title")
+      Then("get 1 matched")
+      mvc.perform(get("/api/custom_collections/search/byTitle").param("title", "fetch_2").accept(MediaType
+        .APPLICATION_JSON))
+        .andDo(print).andExpect(status.is2xxSuccessful)
+        .andExpect(jsonPath("$._embedded.custom_collections.length()", is(1)))
+        .andExpect(jsonPath("$._embedded.custom_collections[0].title", is("fetch_2")))
     }
 
   }
