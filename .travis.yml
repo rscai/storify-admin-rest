@@ -15,9 +15,15 @@ before_install:
     - export PATH=$GRADLE_HOME/bin:$PATH
     - sudo apt-get install jq
     - wget -O ~/codacy-coverage-reporter-assembly-latest.jar $(curl https://api.github.com/repos/codacy/codacy-coverage-reporter/releases/latest | jq -r .assets[0].browser_download_url)
-    - curl -sL https://raw.githubusercontent.com/travis-ci/artifacts/master/install | bash
 script:
-    - gradle clean check JacocoTestReport bootRepackage
+    - gradle clean build check JacocoTestReport
 after_success:
     - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r build/reports/jacoco/test/jacocoTestReport.xml
-    - artifacts upload build/libs/ --target-paths storify-admin-rest/artifacts/$TRAVIS_REPO_SLUG/$TRAVIS_BUILD_NUMBER/$TRAVIS_JOB_NUMBER
+deploy:
+  provider: elasticbeanstalk
+  access_key_id: $AWS_ACCESS_KEY
+  secret_access_key: $AWS_SECRET_KEY
+  region: $AWS_REGION
+  app: "storify-admin-rest-sit"
+  env: "Sample-env"
+  bucket_name: $BUCKET_NAME
