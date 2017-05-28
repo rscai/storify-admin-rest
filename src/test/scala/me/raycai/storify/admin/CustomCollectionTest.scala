@@ -30,7 +30,9 @@ import scala.collection.JavaConverters._
 @WebAppConfiguration
 @ContextConfiguration(classes = Array(classOf[Application]),
   initializers = Array(classOf[ConfigFileApplicationContextInitializer]))
-@SpringBootTest(properties = Array("logging.level.org.springframework=INFO", "spring.jpa.show-sql=false"))
+@SpringBootTest(properties = Array("logging.level.org.springframework=INFO", "spring.jpa.show-sql=false",
+"spring.datasource.url=jdbc:h2:~/test.h2;DB_CLOSE_ON_EXIT=FALSE",
+"spring.datasource.username=sa","spring.datasource.password=sa","spring.datasource.driverClass=org.h2.Driver"))
 class CustomCollectionTest extends FeatureSpec with TestContextManagement with GivenWhenThen with BeforeAndAfter {
   @Autowired var context: WebApplicationContext = null
   @Autowired var dataSource: DataSource = null
