@@ -1,0 +1,1 @@
+web: java -jar build/libs/storify-admin-rest-1.0-SNAPSHOT.jar
