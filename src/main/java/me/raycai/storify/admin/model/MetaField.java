@@ -5,13 +5,12 @@ import javax.persistence.Embeddable;
 
 @Embeddable
 public class MetaField {
-    @Column
+    @Column(name="field_key")
     private String key;
-    @Column
+    @Column(name="field_value")
     private String value;
     @Column
     private String valueType;
-    @Column
     private String namespace;
     @Column
     private String description;

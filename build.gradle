@@ -32,10 +32,10 @@ repositories {
 dependencies {
     compile 'org.springframework.boot:spring-boot-starter-data-rest:1.5.3.RELEASE'
     compile 'org.springframework.boot:spring-boot-starter-data-jpa:1.5.3.RELEASE'
-    //compile 'mysql:mysql-connector-java:6.0.6'
+    compile 'mysql:mysql-connector-java:6.0.6'
     //providedRuntime("org.springframework.boot:spring-boot-starter-tomcat")
 
-    compile 'com.h2database:h2:1.4.195'
+    testCompile 'com.h2database:h2:1.4.195'
     testCompile 'org.scala-lang:scala-library:2.11.8'
     testCompile 'org.scalatest:scalatest_2.11:3.0.0'
     testCompile 'com.github.scalaspring:scalatest-spring_2.11:0.3.1'

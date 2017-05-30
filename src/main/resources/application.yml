@@ -7,18 +7,18 @@ spring:
             returnBodyOnCreate: true
             returnBodyOnUpdate: true
     datasource:
-        url: jdbc:h2:~/test.h2;DB_CLOSE_ON_EXIT=FALSE
-        username: sa
-        password: sa
-        driverClass: org.h2.Driver
+        url: ${JDBC_URL}
+        username: ${JDBC_USERNAME}
+        password: ${JDBC_PASSWORD}
+        driverClass: com.mysql.jdbc.Driver
     jpa:
-        database: H2
         show-sql: true
+        generate-ddl: true
         hiebernate:
-            ddl-auto: none
+            ddl-auto: create-drop
             naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
         properties:
             hibernate:
-                dialect: org.hibernate.dialect.H2Dialect
+                dialect: org.hibernate.dialect.MySQL5Dialect
 server:
     port: 5000
