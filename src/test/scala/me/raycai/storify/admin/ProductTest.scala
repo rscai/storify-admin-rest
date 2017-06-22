@@ -27,7 +27,9 @@ import scala.collection.JavaConverters._
 @ContextConfiguration(classes = Array(classOf[Application]),
     initializers = Array(classOf[ConfigFileApplicationContextInitializer]))
 @SpringBootTest(properties = Array("logging.level.org.springframework=INFO", "spring.jpa.show-sql=false",
-    "spring.datasource.url=jdbc:h2:~/test.h2;DB_CLOSE_ON_EXIT=FALSE",
+    "spring.jpa.generate-ddl=true",
+    "spring.jap.hibernate.ddl-auto=create",
+    "spring.datasource.url=jdbc:h2:mem:product_test;DB_CLOSE_ON_EXIT=FALSE",
     "spring.datasource.username=sa", "spring.datasource.password=sa", "spring.datasource.driverClass=org.h2.Driver",
     "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"))
 class ProductTest extends FeatureSpec with TestContextManagement with GivenWhenThen with BeforeAndAfter {
@@ -45,14 +47,14 @@ class ProductTest extends FeatureSpec with TestContextManagement with GivenWhenT
     val API_BASE = "/api"
     val RES_PRODUCTS = "products"
 
-
+    
     before {
         info("clean all product")
         val connection = dataSource
                 .getConnection()
         val stmt = connection
                 .createStatement()
-        List("product_variant_metafield", "product_variant", "product_image", "product")
+        List( "product_variant_metafield","product_variant", "product_image", "product")
                 .foreach { table =>
                     stmt
                             .execute("delete from " + table)
@@ -171,7 +173,7 @@ class ProductTest extends FeatureSpec with TestContextManagement with GivenWhenT
                     .andExpect(status
                             .is4xxClientError()
                     )
-                    .andDo(print)
+                    //.andDo(print)
                     .andExpect(jsonPath("$.errors.length()", is
                     (1)))
                     .andExpect(jsonPath("$.errors[0].entity", is("Product")))
@@ -430,7 +432,7 @@ class ProductTest extends FeatureSpec with TestContextManagement with GivenWhenT
                                     .APPLICATION_JSON)
                             .content(mapper
                                     .writeValueAsString(existedOne)))
-                    .andDo(print)
+                    //.andDo(print)
                     .andExpect(status
                             .is2xxSuccessful())
                     .andReturn
@@ -469,7 +471,7 @@ class ProductTest extends FeatureSpec with TestContextManagement with GivenWhenT
                             .accept(MediaType
                                     .APPLICATION_JSON)
                             .content(updateJson))
-                    .andDo(print)
+                    //.andDo(print)
                     .andExpect(status
                             .is2xxSuccessful())
             Then("Only reorder image")

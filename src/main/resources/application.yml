@@ -15,7 +15,7 @@ spring:
         show-sql: true
         generate-ddl: true
         hiebernate:
-            ddl-auto: create-drop
+            ddl-auto: validate
             naming-strategy: org.hibernate.cfg.ImprovedNamingStrategy
         properties:
             hibernate:
