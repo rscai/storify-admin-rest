@@ -23,4 +23,11 @@ script:
     - gradle clean build check JacocoTestReport
 after_success:
     - java -cp ~/codacy-coverage-reporter-assembly-latest.jar com.codacy.CodacyCoverageReporter -l Java -r build/reports/jacoco/test/jacocoTestReport.xml
-    - eb deploy
+deploy:
+    provider: elasticbeanstalk
+    access_key_id: $AWS_ACCESS_KEY
+    secret_access_key: $AWS_SECRET_KEY
+    region: $ARTIFACTS_S3_REGION
+    app: "storify-admin-rest"
+    env: "sit-env"
+    bucket_name: $ARTIFACTS_S3_BUCKET
